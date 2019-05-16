@@ -1,4 +1,5 @@
 #include "MQTTClient.h"
+#include "html.h"
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <WiFiManager.h>
@@ -361,11 +362,11 @@ void handleConfigure() {
   form.replace("%USERID%", www_username);
   form.replace("%STATIONPASSWORD%", www_password);
   form.replace("%OTAPASSWORD%", OTA_Password);
-  form.replace("%OTAPASSWORD%", OTA_Password);
-  form.replace("%OTAPASSWORD%", OTA_Password);
-  form.replace("%OTAPASSWORD%", OTA_Password);
-  form.replace("%OTAPASSWORD%", OTA_Password);
-  form.replace("%OTAPASSWORD%", OTA_Password);
+  form.replace("%IPADDRESS%", OTA_Password);
+  form.replace("%USERNAME%", OTA_Password);
+  form.replace("%PASSWORD%", OTA_Password);
+  form.replace("%CLIENTNAME%", OTA_Password);
+  form.replace("%PORT%", OTA_Password);
 
   server.send(200, "text/html", form);  // Configure portal for the cloud
 }
@@ -376,6 +377,11 @@ void handleConfigureNoPassword() {
   form.replace("%USERID%", www_username);
   form.replace("%STATIONPASSWORD%", www_password);
   form.replace("%OTAPASSWORD%", OTA_Password);
+  form.replace("%IPADDRESS%", OTA_Password);
+  form.replace("%USERNAME%", OTA_Password);
+  form.replace("%PASSWORD%", OTA_Password);
+  form.replace("%CLIENTNAME%", OTA_Password);
+  form.replace("%PORT%", OTA_Password);
 
   server.send(200, "text/html", form);  // Configure portal for the cloud
 }
