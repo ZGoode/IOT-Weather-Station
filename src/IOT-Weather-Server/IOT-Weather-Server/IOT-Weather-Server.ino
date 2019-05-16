@@ -22,7 +22,7 @@ char* MQTTIPADDRESS;
 char* MQTTUSERNAME;
 char* MQTTPASSWORD;
 char* MQTTCLIENTNAME;
-char* MQTTPORT;
+short MQTTPORT;
 
 String OTA_Password = "password";
 
@@ -245,11 +245,11 @@ void writeSettings() {
     f.println("www_username=" + String(www_username));
     f.println("www_password=" + String(www_password));
     f.println("OTA_Password=" + String(OTA_Password));
-    f.println("MQTT_ip=" + String(MQTT_ip));
-    f.println("MQTT_username=" + String(MQTT_username));
-    f.println("MQTT_password=" + String(MQTT_password));
-    f.println("MQTT_clientname=" + String(MQTT_clientname));
-    f.println("MQTT_port=" + String(MQTT_port));
+    f.println("MQTT_ip=" + String(MQTTIPADDRESS));
+    f.println("MQTT_username=" + String(MQTTUSERNAME));
+    f.println("MQTT_password=" + String(MQTTPASSWORD));
+    f.println("MQTT_clientname=" + String(MQTTCLIENTNAME));
+    f.println("MQTT_port=" + String(MQTTPORT));
   }
   f.close();
   readSettings();
@@ -265,9 +265,15 @@ void handleUpdateConfigure() {
   temp = server.arg("stationpassword");
   temp.toCharArray(www_password, sizeof(temp));
   OTA_Password = server.arg("otapassword");
-  WeatherApiKey = server.arg("openWeatherMapApiKey");
-  CityID = server.arg("city1").toInt();
-  IS_METRIC = server.hasArg("metric");
+  temp = server.arg("mqttipaddress");
+  temp.toCharArray(MQTTIPADDRESS, sizeof(temp));
+  temp = server.arg("mqttusername");
+  temp.toCharArray(MQTTUSERNAME, sizeof(temp));
+  temp = server.arg("mqttpassword");
+  temp.toCharArray(MQTTPASSWORD, sizeof(temp));
+  temp = server.arg("mqttclientname");
+  temp.toCharArray(MQTTCLIENTNAME, sizeof(temp));
+  MQTTPORT = server.arg("mqttport").toInt();
 
   writeSettings();
   handleConfigureNoPassword();
@@ -297,39 +303,45 @@ void readSettings() {
       Serial.println("www_password=" + String(www_password));
     }
     if (line.indexOf("OTA_Password=") >= 0) {
-      String temp = line.substring(line.lastIndexOf("OTA_Password=") + 13);
-      temp.trim();
-      temp.toCharArray(OTA_Password, sizeof(temp));
-      Serial.println("OTA_Password=" + String(OTA_Password));
+      OTA_Password = line.substring(line.lastIndexOf("OTA_Password=") + 13);
+      Serial.println("OTA_Password=" + OTA_Password);
     }
     if (line.indexOf("MQTT_ip=") >= 0) {
-      MQTTIPADDRESS = line.substring(line.lastIndexOf("MQTT_ip=") + 8);
-      Serial.println("MQTT_ip=" + MQTTIPADDRESS);
+      String temp = line.substring(line.lastIndexOf("MQTT_ip=") + 8);
+      temp.trim();
+      temp.toCharArray(MQTTIPADDRESS, sizeof(temp));
+      Serial.println("MQTT_ip=" + String(MQTTIPADDRESS));
     }
     if (line.indexOf("MQTT_username=") >= 0) {
-      MQTTUSERNAME = line.substring(line.lastIndexOf("MQTT_username=") + 14);
-      Serial.println("MQTT_username=" + MQTTUSERNAME);
+      String temp = line.substring(line.lastIndexOf("MQTT_username=") + 14);
+      temp.trim();
+      temp.toCharArray(MQTTUSERNAME, sizeof(temp));
+      Serial.println("MQTT_username=" + String(MQTTUSERNAME));
     }
     if (line.indexOf("MQTT_password=") >= 0) {
-      MQTTPASSWORD = line.substring(line.lastIndexOf("MQTT_password=") + 14);
-      Serial.println("MQTT_password=" + MQTTPASSWORD);
+      String temp = line.substring(line.lastIndexOf("MQTT_password=") + 14);
+      temp.trim();
+      temp.toCharArray(MQTTPASSWORD, sizeof(temp));
+      Serial.println("MQTT_password=" + String(MQTTPASSWORD));
     }
     if (line.indexOf("MQTT_clientname=") >= 0) {
-      MQTTCLIENTNAME = line.substring(line.lastIndexOf("MQTT_clientname=") + 16);
-      Serial.println("MQTT_clientname=" + MQTTCLIENTNAME);
+      String temp = line.substring(line.lastIndexOf("MQTT_clientname=") + 16);
+      temp.trim();
+      temp.toCharArray(MQTTCLIENTNAME, sizeof(temp));
+      Serial.println("MQTT_clientname=" + String(MQTTCLIENTNAME));
     }
     if (line.indexOf("MQTT_port=") >= 0) {
-      MQTTPORT = line.substring(line.lastIndexOf("MQTT_port=") + 10);
-      Serial.println("MQTT_port=" + MQTTPORT);
+      MQTTPORT = line.substring(line.lastIndexOf("MQTT_port=") + 10).toInt();
+      Serial.println("MQTT_port=" + String(MQTTPORT));
     }
   }
   fr.close();
 
-  setIPAddress(MQTTIPADDRESS);
-  setUsername(MQTTUSERNAME);
-  setPassword(MQTTPASSWORD);
-  setClientName(MQTTCLIENTNAME);
-  setPort(MQTTPORT);
+  client.setIPAddress(MQTTIPADDRESS);
+  client.setUsername(MQTTUSERNAME);
+  client.setPassword(MQTTPASSWORD);
+  client.setClientName(MQTTCLIENTNAME);
+  client.setPort(MQTTPORT);
 }
 
 void handleNotFound() {
