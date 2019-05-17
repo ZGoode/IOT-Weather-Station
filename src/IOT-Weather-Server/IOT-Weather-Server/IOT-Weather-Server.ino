@@ -1,7 +1,30 @@
+/********************************************************
+ * BH1750
+ * SDA - D2
+ * SCL - D1
+ * VCC - 3V3
+ * GND - GND
+ * 
+ * BME280
+ * SCK - D5
+ * MISO - D6
+ * MOSI - D7
+ * CS - D8
+ * VCC - 5V
+ * GND - GND
+ * 
+ * OLED
+ * SCL - D3
+ * SDA - D4
+ * VCC - 5V
+ * GND - GND
+ ********************************************************/
+
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
+#include <BH1750FVI.h>
 #include "MQTTClient.h"
 #include "html.h"
 #include <ESP8266WiFi.h>
@@ -46,13 +69,15 @@ int sensorNumber = 0;
 
 Adafruit_BME280 bme(BME_CS, BME_MOSI, BME_MISO, BME_SCK); // software SPI
 
+BH1750FVI LightSensor(BH1750FVI::k_DevModeContLowRes);
+
 long previousMillisDisplay;
 long previousMillisSensor;
 
 // Display Settings
 const int I2C_DISPLAY_ADDRESS = 0x3c; // I2C Address of your Display (usually 0x3c or 0x3d)
-const int SDA_PIN = D2;
-const int SCL_PIN = D5;
+const int SDA_PIN = D3;
+const int SCL_PIN = D4;
 const boolean INVERT_DISPLAY = true; // true = pins at top | false = pins at the bottom
 //#define DISPLAY_SH1106       // Uncomment this line to use the SH1106 display -- SSD1306 is used by default and is most common
 
@@ -99,11 +124,9 @@ void setup() {
 
   bool status;
 
-  status = bme.begin();
-  if (!status) {
-    Serial.println("Could not find a valid BME280 sensor, check wiring!");
-    while (1);
-  }
+  bme.begin();
+
+  LightSensor.begin();
 
   Serial.println();
   pinMode(externalLight, OUTPUT);
@@ -212,7 +235,8 @@ void loop() {
       sensorNumber++;
     } else if (sensorNumber == 4) {
       String tempData = "LightIntensity=";
-      tempData += bme.readAltitude(SEALEVELPRESSURE_HPA);
+      uint16_t lux = LightSensor.GetLightIntensity();
+      tempData += lux;
       client.publish("sensorData", tempData);
       sensorNumber = 0;
     }
