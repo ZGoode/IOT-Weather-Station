@@ -1,3 +1,7 @@
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
 #include "MQTTClient.h"
 #include "html.h"
 #include <ESP8266WiFi.h>
@@ -30,8 +34,20 @@ String OTA_Password = "password";
 const int buttonPin = D3;
 int externalLight = LED_BUILTIN;
 long intervalDisplay = 10000;
+long intervalSensor = 1000;
+int sensorNumber = 0;
+
+#define BME_SCK D5
+#define BME_MISO D6
+#define BME_MOSI D7
+#define BME_CS D8
+
+#define SEALEVELPRESSURE_HPA (1013.25)
+
+Adafruit_BME280 bme(BME_CS, BME_MOSI, BME_MISO, BME_SCK); // software SPI
 
 long previousMillisDisplay;
+long previousMillisSensor;
 
 // Display Settings
 const int I2C_DISPLAY_ADDRESS = 0x3c; // I2C Address of your Display (usually 0x3c or 0x3d)
@@ -80,6 +96,14 @@ void setup() {
   Serial.begin(115200);
   SPIFFS.begin();
   delay(10);
+
+  bool status;
+
+  status = bme.begin();
+  if (!status) {
+    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+    while (1);
+  }
 
   Serial.println();
   pinMode(externalLight, OUTPUT);
@@ -150,30 +174,12 @@ void setup() {
 
 void onConnectionEstablished()
 {
-  // Subscribe to "temperature" and display received message to Serial
-  client.subscribe("temperature", [](String & payload) {
+  // Subscribe to "sensorData" and display received message to Serial
+  client.subscribe("sensorData", [](String & payload) {
     Serial.println(payload);
   });
 
-  // Subscribe to "humidity" and display received message to Serial
-  client.subscribe("humidity", [](String & payload) {
-    Serial.println(payload);
-  });
-
-  // Subscribe to "pressure" and display received message to Serial
-  client.subscribe("pressure", [](String & payload) {
-    Serial.println(payload);
-  });
-
-  // Subscribe to "lightIntensity" and display received message to Serial
-  client.subscribe("lightIntensity", [](String & payload) {
-    Serial.println(payload);
-  });
-
-  client.publish("temperature", "test");
-  client.publish("humidity", "test");
-  client.publish("pressure", "test");
-  client.publish("lightIntensity", "test");
+  client.publish("sensorData", "test");
 }
 
 void loop() {
@@ -181,9 +187,39 @@ void loop() {
   ArduinoOTA.handle();
   client.loop();
 
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillisSensor > (intervalSensor / 5)) {
+    if (sensorNumber == 0) {
+      String tempData = "Temperature=";
+      tempData += bme.readTemperature();
+      client.publish("sensorData", tempData);
+      sensorNumber++;
+    } else if (sensorNumber == 1) {
+      String tempData = "Humidity=";
+      tempData += bme.readHumidity();
+      client.publish("sensorData", tempData);
+      sensorNumber++;
+    } else if (sensorNumber == 2) {
+      String tempData = "Pressure=";
+      tempData += (bme.readPressure() / 100.0F);
+      client.publish("sensorData", tempData);
+      sensorNumber++;
+    } else if (sensorNumber == 3) {
+      String tempData = "Altitude=";
+      tempData += bme.readAltitude(SEALEVELPRESSURE_HPA);
+      client.publish("sensorData", tempData);
+      sensorNumber++;
+    } else if (sensorNumber == 4) {
+      String tempData = "LightIntensity=";
+      tempData += bme.readAltitude(SEALEVELPRESSURE_HPA);
+      client.publish("sensorData", tempData);
+      sensorNumber = 0;
+    }
+  }
+
   delay(1);
 
-  unsigned long currentMillis = millis();
   if (digitalRead(buttonPin) == HIGH) {
     previousMillisDisplay = currentMillis;
     display.setTextAlignment(TEXT_ALIGN_CENTER);
