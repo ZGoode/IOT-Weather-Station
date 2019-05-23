@@ -46,9 +46,9 @@ boolean IS_METRIC = true;
 const int WEBSERVER_PORT = 80;
 char* www_username = "admin";
 char* www_password = "password";
-char* MQTTIPADDRESS = "10.0.0.12";
-char* MQTTUSERNAME = "user";
-char* MQTTPASSWORD = "password";
+char* MQTTIPADDRESS = "10.0.0.30";
+char* MQTTUSERNAME = "";
+char* MQTTPASSWORD = "";
 char* MQTTCLIENTNAME = "test";
 short MQTTPORT = 1883;
 
