@@ -1,23 +1,23 @@
 /********************************************************
- * BH1750
- * SDA - D2
- * SCL - D1
- * VCC - 3V3
- * GND - GND
- * 
- * BME280
- * SCK - D5
- * MISO - D6
- * MOSI - D7
- * CS - D8
- * VCC - 5V
- * GND - GND
- * 
- * OLED
- * SCL - D3
- * SDA - D4
- * VCC - 5V
- * GND - GND
+   BH1750
+   SDA - D2
+   SCL - D1
+   VCC - 3V3
+   GND - GND
+
+   BME280
+   SCK - D5
+   MISO - D6
+   MOSI - D7
+   CS - D8
+   VCC - 5V
+   GND - GND
+
+   OLED
+   SCL - D3
+   SDA - D4
+   VCC - 5V
+   GND - GND
  ********************************************************/
 
 #include <Wire.h>
@@ -46,15 +46,15 @@ boolean IS_METRIC = true;
 const int WEBSERVER_PORT = 80;
 char* www_username = "admin";
 char* www_password = "password";
-char* MQTTIPADDRESS;
-char* MQTTUSERNAME;
-char* MQTTPASSWORD;
-char* MQTTCLIENTNAME;
-short MQTTPORT;
+char* MQTTIPADDRESS = "10.0.0.12";
+char* MQTTUSERNAME = "";
+char* MQTTPASSWORD = "";
+char* MQTTCLIENTNAME = "test";
+short MQTTPORT = 1883;
 
 String OTA_Password = "password";
 
-const int buttonPin = D3;
+const int buttonPin = D2;
 int externalLight = LED_BUILTIN;
 long intervalDisplay = 10000;
 long intervalSensor = 1000;
@@ -114,7 +114,7 @@ MQTTClient client(
   1883,           // The MQTT port, default to 1883. this line can be omitted
   "user",         // MQTT Username
   "password",     // MQTT Password
-  "test"          // Client name that uniquely identify your device
+  ""              // Client name that uniquely identify your device
 );
 
 void setup() {
@@ -203,6 +203,7 @@ void onConnectionEstablished()
   });
 
   client.publish("sensorData", "test");
+  Serial.println("test");
 }
 
 void loop() {
@@ -314,6 +315,11 @@ void writeSettings() {
   }
   f.close();
   readSettings();
+  client.setUsername(MQTTUSERNAME);
+  client.setPassword(MQTTPASSWORD);
+  client.setIPAddress(MQTTIPADDRESS);
+  client.setClientName(MQTTCLIENTNAME);
+  client.setPort(MQTTPORT);
 }
 
 void handleUpdateConfigure() {
@@ -422,11 +428,11 @@ void handleConfigure() {
   form.replace("%USERID%", www_username);
   form.replace("%STATIONPASSWORD%", www_password);
   form.replace("%OTAPASSWORD%", OTA_Password);
-  form.replace("%IPADDRESS%", OTA_Password);
-  form.replace("%USERNAME%", OTA_Password);
-  form.replace("%PASSWORD%", OTA_Password);
-  form.replace("%CLIENTNAME%", OTA_Password);
-  form.replace("%PORT%", OTA_Password);
+  form.replace("%IPADDRESS%", MQTTIPADDRESS);
+  form.replace("%USERNAME%", MQTTUSERNAME);
+  form.replace("%PASSWORD%", MQTTPASSWORD);
+  form.replace("%CLIENTNAME%", MQTTCLIENTNAME);
+  form.replace("%PORT%", String(MQTTPORT));
 
   server.send(200, "text/html", form);  // Configure portal for the cloud
 }
@@ -437,11 +443,11 @@ void handleConfigureNoPassword() {
   form.replace("%USERID%", www_username);
   form.replace("%STATIONPASSWORD%", www_password);
   form.replace("%OTAPASSWORD%", OTA_Password);
-  form.replace("%IPADDRESS%", OTA_Password);
-  form.replace("%USERNAME%", OTA_Password);
-  form.replace("%PASSWORD%", OTA_Password);
-  form.replace("%CLIENTNAME%", OTA_Password);
-  form.replace("%PORT%", OTA_Password);
+  form.replace("%IPADDRESS%", MQTTIPADDRESS);
+  form.replace("%USERNAME%", MQTTUSERNAME);
+  form.replace("%PASSWORD%", MQTTPASSWORD);
+  form.replace("%CLIENTNAME%", MQTTCLIENTNAME);
+  form.replace("%PORT%", String(MQTTPORT));
 
   server.send(200, "text/html", form);  // Configure portal for the cloud
 }
