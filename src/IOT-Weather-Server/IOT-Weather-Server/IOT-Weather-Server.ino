@@ -25,7 +25,7 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <BH1750FVI.h>
-#include "MQTTClient.h"
+#include "EspMQTTClient.h"
 #include "html.h"
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
@@ -47,8 +47,8 @@ const int WEBSERVER_PORT = 80;
 char* www_username = "admin";
 char* www_password = "password";
 char* MQTTIPADDRESS = "10.0.0.12";
-char* MQTTUSERNAME = "";
-char* MQTTPASSWORD = "";
+char* MQTTUSERNAME = "user";
+char* MQTTPASSWORD = "password";
 char* MQTTCLIENTNAME = "test";
 short MQTTPORT = 1883;
 
@@ -57,7 +57,7 @@ String OTA_Password = "password";
 const int buttonPin = D2;
 int externalLight = LED_BUILTIN;
 long intervalDisplay = 10000;
-long intervalSensor = 1000;
+long intervalSensor = 10000;
 int sensorNumber = 0;
 
 #define BME_SCK D5
@@ -98,6 +98,14 @@ FrameCallback clockFrame[2];
 
 ESP8266WebServer server(WEBSERVER_PORT);
 
+EspMQTTClient client(
+  MQTTIPADDRESS,             // MQTT Broker server ip
+  MQTTPORT,           // The MQTT port, default to 1883. this line can be omitted
+  MQTTUSERNAME,         // MQTT Username
+  MQTTPASSWORD,     // MQTT Password
+  MQTTCLIENTNAME              // Client name that uniquely identify your device
+);
+
 void handleSystemReset();
 void handleWifiReset();
 int8_t getWifiQuality();
@@ -108,14 +116,6 @@ void handleNotFound();
 void handleRoot();
 void handleConfigure();
 void handleConfigureNoPassword();
-
-MQTTClient client(
-  "",             // MQTT Broker server ip
-  1883,           // The MQTT port, default to 1883. this line can be omitted
-  "user",         // MQTT Username
-  "password",     // MQTT Password
-  ""              // Client name that uniquely identify your device
-);
 
 void setup() {
   Serial.begin(115200);
@@ -198,7 +198,7 @@ void setup() {
 void onConnectionEstablished()
 {
   // Subscribe to "sensorData" and display received message to Serial
-  client.subscribe("sensorData", [](String & payload) {
+  client.subscribe("sensorData", [](const String & payload) {
     Serial.println(payload);
   });
 
@@ -213,34 +213,36 @@ void loop() {
 
   unsigned long currentMillis = millis();
 
-  if (currentMillis - previousMillisSensor > (intervalSensor / 5)) {
-    if (sensorNumber == 0) {
-      String tempData = "Temperature=";
-      tempData += bme.readTemperature();
-      client.publish("sensorData", tempData);
-      sensorNumber++;
-    } else if (sensorNumber == 1) {
-      String tempData = "Humidity=";
-      tempData += bme.readHumidity();
-      client.publish("sensorData", tempData);
-      sensorNumber++;
-    } else if (sensorNumber == 2) {
-      String tempData = "Pressure=";
-      tempData += (bme.readPressure() / 100.0F);
-      client.publish("sensorData", tempData);
-      sensorNumber++;
-    } else if (sensorNumber == 3) {
-      String tempData = "Altitude=";
-      tempData += bme.readAltitude(SEALEVELPRESSURE_HPA);
-      client.publish("sensorData", tempData);
-      sensorNumber++;
-    } else if (sensorNumber == 4) {
-      String tempData = "LightIntensity=";
-      uint16_t lux = LightSensor.GetLightIntensity();
-      tempData += lux;
-      client.publish("sensorData", tempData);
-      sensorNumber = 0;
-    }
+  if (currentMillis - previousMillisSensor > intervalSensor) {
+    String tempData = String(bme.readTemperature()) + "," + String(LightSensor.GetLightIntensity()) + "," + String((bme.readPressure() / 100.0F)) + "," + String(bme.readHumidity());
+    client.publish("sensorData", tempData);
+    //    if (sensorNumber == 0) {
+    //      String tempData = "Temperature=";
+    //      tempData += bme.readTemperature();
+    //      client.publish("sensorData", tempData);
+    //      sensorNumber++;
+    //    } else if (sensorNumber == 1) {
+    //      String tempData = "Humidity=";
+    //      tempData += bme.readHumidity();
+    //      client.publish("sensorData", tempData);
+    //      sensorNumber++;
+    //    } else if (sensorNumber == 2) {
+    //      String tempData = "Pressure=";
+    //      tempData += (bme.readPressure() / 100.0F);
+    //      client.publish("sensorData", tempData);
+    //      sensorNumber++;
+    //    } else if (sensorNumber == 3) {
+    //      String tempData = "Altitude=";
+    //      tempData += bme.readAltitude(SEALEVELPRESSURE_HPA);
+    //      client.publish("sensorData", tempData);
+    //      sensorNumber++;
+    //    } else if (sensorNumber == 4) {
+    //      String tempData = "LightIntensity=";
+    //      uint16_t lux = LightSensor.GetLightIntensity();
+    //      tempData += lux;
+    //      client.publish("sensorData", tempData);
+    //      sensorNumber = 0;
+    //    }
   }
 
   delay(1);
@@ -315,11 +317,6 @@ void writeSettings() {
   }
   f.close();
   readSettings();
-  client.setUsername(MQTTUSERNAME);
-  client.setPassword(MQTTPASSWORD);
-  client.setIPAddress(MQTTIPADDRESS);
-  client.setClientName(MQTTCLIENTNAME);
-  client.setPort(MQTTPORT);
 }
 
 void handleUpdateConfigure() {
@@ -403,12 +400,6 @@ void readSettings() {
     }
   }
   fr.close();
-
-  client.setIPAddress(MQTTIPADDRESS);
-  client.setUsername(MQTTUSERNAME);
-  client.setPassword(MQTTPASSWORD);
-  client.setClientName(MQTTCLIENTNAME);
-  client.setPort(MQTTPORT);
 }
 
 void handleNotFound() {
