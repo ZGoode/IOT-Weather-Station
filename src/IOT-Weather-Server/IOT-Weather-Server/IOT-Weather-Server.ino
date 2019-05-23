@@ -46,7 +46,7 @@ boolean IS_METRIC = true;
 const int WEBSERVER_PORT = 80;
 char* www_username = "admin";
 char* www_password = "password";
-char* MQTTIPADDRESS = "10.0.0.30";
+char* MQTTIPADDRESS = "10.6.39.251";
 char* MQTTUSERNAME = "";
 char* MQTTPASSWORD = "";
 char* MQTTCLIENTNAME = "test";
@@ -60,36 +60,29 @@ long intervalDisplay = 10000;
 long intervalSensor = 10000;
 int sensorNumber = 0;
 
-#define BME_SCK D5
-#define BME_MISO D6
-#define BME_MOSI D7
-#define BME_CS D8
-
 #define SEALEVELPRESSURE_HPA (1013.25)
 
-Adafruit_BME280 bme(BME_CS, BME_MOSI, BME_MISO, BME_SCK); // software SPI
-
-BH1750FVI LightSensor(BH1750FVI::k_DevModeContLowRes);
+Adafruit_BME280 bme;
 
 long previousMillisDisplay;
 long previousMillisSensor;
 
 // Display Settings
-const int I2C_DISPLAY_ADDRESS = 0x3c; // I2C Address of your Display (usually 0x3c or 0x3d)
-const int SDA_PIN = D3;
-const int SCL_PIN = D4;
-const boolean INVERT_DISPLAY = true; // true = pins at top | false = pins at the bottom
+//const int I2C_DISPLAY_ADDRESS = 0x3c; // I2C Address of your Display (usually 0x3c or 0x3d)
+//const int SDA_PIN = D3;
+//const int SCL_PIN = D4;
+//const boolean INVERT_DISPLAY = true; // true = pins at top | false = pins at the bottom
 //#define DISPLAY_SH1106       // Uncomment this line to use the SH1106 display -- SSD1306 is used by default and is most common
 
 // Initialize the oled display for I2C_DISPLAY_ADDRESS
-// SDA_PIN and SCL_PIN
-#if defined(DISPLAY_SH1106)
-SH1106Wire display(I2C_DISPLAY_ADDRESS, SDA_PIN, SCL_PIN);
-#else
-SSD1306Wire display(I2C_DISPLAY_ADDRESS, SDA_PIN, SCL_PIN); // this is the default
-#endif
-
-OLEDDisplayUi   ui( &display );
+//// SDA_PIN and SCL_PIN
+//#if defined(DISPLAY_SH1106)
+//SH1106Wire display(I2C_DISPLAY_ADDRESS, SDA_PIN, SCL_PIN);
+//#else
+//SSD1306Wire display(I2C_DISPLAY_ADDRESS, SDA_PIN, SCL_PIN); // this is the default
+//#endif
+//
+//OLEDDisplayUi   ui( &display );
 
 // Set the number of Frames supported
 const int numberOfFrames = 3;
@@ -111,22 +104,44 @@ void handleWifiReset();
 int8_t getWifiQuality();
 void readSettings();
 void writeSettings();
-void handleUpdateConfig();
+void handleUpdateConfigure();
 void handleNotFound();
 void handleRoot();
 void handleConfigure();
 void handleConfigureNoPassword();
 
 void setup() {
+  Wire.pins(D4, D3);
+  bme.begin(0x76);
+  // Only needed in forced mode! In normal mode, you can remove the next line.
+  bme.takeForcedMeasurement(); // has no effect in normal mode
+  Serial.print("Temperature = ");
+  Serial.print(bme.readTemperature());
+  Serial.println(" *C");
+
+  Serial.print("Pressure = ");
+
+  Serial.print(bme.readPressure() / 100.0F);
+  Serial.println(" hPa");
+
+  Serial.print("Approx. Altitude = ");
+  Serial.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
+  Serial.println(" m");
+
+  Serial.print("Humidity = ");
+  Serial.print(bme.readHumidity());
+  Serial.println(" %");
+
+  Serial.println();
   Serial.begin(115200);
   SPIFFS.begin();
   delay(10);
 
   bool status;
 
-  bme.begin();
+  bme.begin(0x76);
 
-  LightSensor.begin();
+  //LightSensor.begin();
 
   Serial.println();
   pinMode(externalLight, OUTPUT);
@@ -134,14 +149,14 @@ void setup() {
 
   readSettings();
 
-  //initialize display
-  display.init();
-  if (INVERT_DISPLAY) {
-    display.flipScreenVertically(); // connections at top of OLED display
-  }
-
-  display.clear();
-  display.display();
+  //  //initialize display
+  //  display.init();
+  //  if (INVERT_DISPLAY) {
+  //    display.flipScreenVertically(); // connections at top of OLED display
+  //  }
+  //
+  //  display.clear();
+  //  display.display();
 
   WiFiManager wifiManager;
 
@@ -214,7 +229,9 @@ void loop() {
   unsigned long currentMillis = millis();
 
   if (currentMillis - previousMillisSensor > intervalSensor) {
-    String tempData = String(bme.readTemperature()) + "," + String(LightSensor.GetLightIntensity()) + "," + String((bme.readPressure() / 100.0F)) + "," + String(bme.readHumidity());
+    bme.takeForcedMeasurement();
+    previousMillisSensor = currentMillis;
+    String tempData = String(bme.readTemperature()) + "," + String(bme.readAltitude(SEALEVELPRESSURE_HPA)) + "," + String((bme.readPressure() / 100.0F)) + "," + String(bme.readHumidity());
     client.publish("sensorData", tempData);
     //    if (sensorNumber == 0) {
     //      String tempData = "Temperature=";
@@ -247,21 +264,22 @@ void loop() {
 
   delay(1);
 
-  if (digitalRead(buttonPin) == HIGH) {
-    previousMillisDisplay = currentMillis;
-    display.setTextAlignment(TEXT_ALIGN_CENTER);
-    display.setFont(ArialMT_Plain_10);
-    display.drawString(64, 10, "Web Interface On");
-    display.drawString(64, 20, "You May Connect to IP");
-    display.setFont(ArialMT_Plain_16);
-    display.drawString(64, 30, WiFi.localIP().toString());
-    display.drawString(64, 46, "Port: " + String(WEBSERVER_PORT));
-    display.display();
-  }
-
-  if (currentMillis - previousMillisDisplay > intervalDisplay) {
-    display.clear();
-  }
+  //  if (digitalRead(buttonPin) == HIGH) {
+  //    previousMillisDisplay = currentMillis;
+  //    display.setTextAlignment(TEXT_ALIGN_CENTER);
+  //    display.setFont(ArialMT_Plain_10);
+  //    display.drawString(64, 10, "Web Interface On");
+  //    display.drawString(64, 20, "You May Connect to IP");
+  //    display.setFont(ArialMT_Plain_16);
+  //    display.drawString(64, 30, WiFi.localIP().toString());
+  //    display.drawString(64, 46, "Port: " + String(WEBSERVER_PORT));
+  //    display.display();
+  //  }
+  //
+  //  if (currentMillis - previousMillisDisplay > intervalDisplay) {
+  //    display.clear();
+  //  }
+  //}
 }
 
 void handleSystemReset() {
